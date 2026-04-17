@@ -9,14 +9,18 @@ function doPost(e) {
     }
     sheet.appendRow([
       data.fechaRegistro || new Date().toLocaleString('es-CO'),
-      data.nombres || "", data.apellidos || "",
-      data.cedula || "", data.correo || "",
-      data.contacto || "", data.rol || "",
-      data.municipio || "", data.institucion || ""
+      data.nombres    || "",
+      data.apellidos  || "",
+      data.cedula     || "",
+      data.correo     || "",
+      data.contacto   || "",
+      data.rol        || "",
+      data.municipio  || "",
+      data.institucion|| ""
     ]);
-    return buildResponse({ status: "ok" }, null);
+    return buildResponse({ status: "ok" });
   } catch(err) {
-    return buildResponse({ status: "error", message: err.toString() }, null);
+    return buildResponse({ status: "error", message: err.toString() });
   }
 }
 
@@ -24,17 +28,18 @@ function doGet(e) {
   try {
     const sheet = getSheet();
     const rows = sheet.getDataRange().getValues();
-    const callback = e.parameter.callback || null;
-    if (rows.length <= 1) return buildResponse([], callback);
+    if (rows.length <= 1) return buildResponse([]);
     const headers = rows[0];
     const records = rows.slice(1).map(row => {
       const obj = {};
-      headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? String(row[i]) : ""; });
+      headers.forEach((h, i) => {
+        obj[h] = row[i] !== undefined ? String(row[i]) : "";
+      });
       return obj;
     });
-    return buildResponse(records, callback);
+    return buildResponse(records);
   } catch(err) {
-    return buildResponse({ status: "error", message: err.toString() }, null);
+    return buildResponse([]);
   }
 }
 
@@ -45,9 +50,8 @@ function getSheet() {
   return sheet;
 }
 
-function buildResponse(data, callback) {
-  const json = JSON.stringify(data);
-  const body = callback ? callback + '(' + json + ')' : json;
-  const mime = callback ? ContentService.MimeType.JAVASCRIPT : ContentService.MimeType.JSON;
-  return ContentService.createTextOutput(body).setMimeType(mime);
+function buildResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
