@@ -402,41 +402,44 @@ function switchTab(id, el) {
 // ── DATA ─────────────────────────────────────────────────────────────────────
 let allData = [];
 
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRzMItxkNRH9WifDcxNJkORaofLmlN7Xd2IiUqUVGes-ahLpgCN-Ncspznr55rSL_oP4rLDLLVrk_6y/pub?output=csv";
+
 async function loadData() {
   document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="loading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span> &nbsp;Cargando registros...</td></tr>';
-
-  async function tryFetch(url, parseWrapper) {
-    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  try {
+    const res = await fetch(CSV_URL);
     const text = await res.text();
-    const parsed = JSON.parse(text);
-    return parseWrapper ? JSON.parse(parsed.contents) : parsed;
+    allData = csvToJson(text);
+    updateStats();
+    buildMuniFilter();
+    renderTable();
+  } catch(err) {
+    document.getElementById('tableBody').innerHTML = `<tr><td colspan="10" class="empty-state">
+      <strong>No se pudo cargar.</strong><br><br>
+      <button onclick="loadData()" style="background:#2f6b3b;color:white;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:700;font-family:inherit;">Reintentar</button>
+    </td></tr>`;
+    document.getElementById('countLabel').textContent = 'Sin conexión';
   }
+}
 
-  const attempts = [
-    () => tryFetch(SCRIPT_URL, false),
-    () => tryFetch('https://corsproxy.io/?' + encodeURIComponent(SCRIPT_URL), false),
-    () => tryFetch('https://api.allorigins.win/get?url=' + encodeURIComponent(SCRIPT_URL), true),
-    () => tryFetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(SCRIPT_URL), false),
-  ];
-
-  for (const attempt of attempts) {
-    try {
-      const data = await attempt();
-      if (Array.isArray(data)) {
-        allData = data;
-        updateStats();
-        buildMuniFilter();
-        renderTable();
-        return;
-      }
-    } catch(e) { continue; }
-  }
-
-  document.getElementById('tableBody').innerHTML = `<tr><td colspan="10" class="empty-state">
-    <strong>No se pudo cargar.</strong> Los datos existen en Google Sheets pero no se pueden leer desde aquí.<br><br>
-    <button onclick="loadData()" style="background:#2f6b3b;color:white;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:700;font-family:inherit;">Reintentar</button>
-  </td></tr>`;
-  document.getElementById('countLabel').textContent = 'Sin conexión';
+function csvToJson(csv) {
+  const lines = csv.trim().split("\n");
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, '').trim());
+  return lines.slice(1).map(line => {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQuotes = !inQuotes; }
+      else if (line[i] === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
+      else { current += line[i]; }
+    }
+    values.push(current.trim());
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (values[i] || '').replace(/^"|"$/g, ''); });
+    return obj;
+  });
 }
 
 function updateStats() {
