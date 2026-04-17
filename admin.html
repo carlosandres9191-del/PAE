@@ -402,18 +402,34 @@ function switchTab(id, el) {
 // ── DATA ─────────────────────────────────────────────────────────────────────
 let allData = [];
 
-async function loadData() {
+function loadData() {
   document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="loading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span> &nbsp;Cargando registros...</td></tr>';
-  try {
-    const res = await fetch(SCRIPT_URL + '?action=get');
-    const data = await res.json();
+  const cbName = 'pae_cb_' + Date.now();
+  const timeoutId = setTimeout(() => {
+    cleanup();
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty-state">Tiempo de espera agotado. Asegúrate de haber publicado el script como "Cualquier persona".</td></tr>';
+  }, 12000);
+  function cleanup() {
+    clearTimeout(timeoutId);
+    delete window[cbName];
+    const s = document.getElementById('_pae_jsonp');
+    if (s) s.remove();
+  }
+  window[cbName] = function(data) {
+    cleanup();
     allData = Array.isArray(data) ? data : [];
     updateStats();
     buildMuniFilter();
     renderTable();
-  } catch (err) {
-    document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty-state">Error al cargar los datos. Verifica la URL del script.</td></tr>';
-  }
+  };
+  const script = document.createElement('script');
+  script.id = '_pae_jsonp';
+  script.src = SCRIPT_URL + '?callback=' + cbName;
+  script.onerror = () => {
+    cleanup();
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty-state">Error de conexión. Verifica que el script esté publicado correctamente en Google Apps Script.</td></tr>';
+  };
+  document.head.appendChild(script);
 }
 
 function updateStats() {
