@@ -146,10 +146,7 @@
               <option value="" disabled selected>Seleccione su municipio</option>
             </select>
           </div>
-          <div class="field">
-            <label for="institucion">Institución educativa</label>
-            <input type="text" id="institucion" placeholder="Nombre de la institución" />
-          </div>
+
           <div class="actions">
             <button type="submit" class="btn-submit" id="btnEnviar">Enviar inscripción</button>
             <span class="helper-text">Al enviar, será redirigido al video informativo del evento.</span>
@@ -164,6 +161,7 @@
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnTRDJzk9S2d9Y9FaXTbEuia4ilt6vQ4sk1oNC4tQy-n3xmkHQ1wc0yk6YKQCvzdKG/exec";
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgRf1wnhcjhy9O6W164BfvKRq8v3te1XQ7w4XR2wG4pnyeAoADejHQ7yE4-sFgU47a9frAm_Q8-zxS/pub?gid=0&single=true&output=csv";
 
     const MUNICIPIOS = ["Abejorral","Abriaquí","Alejandría","Amagá","Amalfi","Andes","Angelópolis","Angostura","Anorí","Anzá","Apartadó","Arboletes","Argelia","Armenia","Barbosa","Bello","Betania","Betulia","Briceño","Buriticá","Cáceres","Caicedo","Caldas","Campamento","Cañasgordas","Caracolí","Caramanta","Carepa","Carolina del Príncipe","Caucasia","Chigorodó","Cisneros","Ciudad Bolívar","Cocorná","Concepción","Concordia","Copacabana","Dabeiba","Donmatías","Ebéjico","El Bagre","El Carmen de Viboral","El Peñol","El Retiro","El Santuario","Entrerríos","Envigado","Fredonia","Frontino","Giraldo","Girardota","Gómez Plata","Granada","Guadalupe","Guarne","Guatapé","Heliconia","Hispania","Itagüí","Ituango","Jardín","Jericó","La Ceja","La Estrella","La Pintada","La Unión","Liborina","Maceo","Marinilla","Medellín","Montebello","Murindó","Mutatá","Nariño","Nechí","Necoclí","Olaya","Peque","Pueblorrico","Puerto Berrío","Puerto Nare","Puerto Triunfo","Remedios","Rionegro","Sabanalarga","Sabaneta","Salgar","San Andrés de Cuerquia","San Carlos","San Francisco","San Jerónimo","San José de la Montaña","San Juan de Urabá","San Luis","San Pedro de los Milagros","San Pedro de Urabá","San Rafael","San Roque","San Vicente Ferrer","Santa Bárbara","Santa Fe de Antioquia","Santa Rosa de Osos","Santo Domingo","Segovia","Sonsón","Sopetrán","Támesis","Tarazá","Tarso","Titiribí","Toledo","Turbo","Uramita","Urrao","Valdivia","Valparaíso","Vegachí","Venecia","Vigía del Fuerte","Yalí","Yarumal","Yolombó","Yondó","Zaragoza"];
 
@@ -178,16 +176,38 @@
 
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
-      btn.disabled = true; btn.textContent = 'Enviando...';
+      btn.disabled = true; btn.textContent = 'Verificando...';
+
+      const cedula   = document.getElementById('cedula').value.trim();
+      const correo   = document.getElementById('correo').value.trim();
+      const contacto = document.getElementById('contacto').value.trim();
+
+      // Verificar duplicados
+      try {
+        const res = await fetch(CSV_URL);
+        const text = await res.text();
+        const lines = text.trim().split('\n');
+        if (lines.length > 1) {
+          const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+          const iCed = headers.findIndex(h => h === 'Cédula');
+          const iCor = headers.findIndex(h => h === 'Correo');
+          const iCon = headers.findIndex(h => h === 'Contacto');
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',').map(c => c.replace(/"/g,'').trim());
+            if (iCed >= 0 && cols[iCed] === cedula)   { showToast('⚠️ Ya existe un registro con esa cédula.');            btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+            if (iCor >= 0 && cols[iCor] === correo)   { showToast('⚠️ Ya existe un registro con ese correo.');             btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+            if (iCon >= 0 && cols[iCon] === contacto) { showToast('⚠️ Ya existe un registro con ese número de contacto.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+          }
+        }
+      } catch(err) { /* Si no se puede verificar, permite continuar */ }
+
+      btn.textContent = 'Enviando...';
       const data = {
-        nombres: document.getElementById('nombres').value.trim(),
+        nombres:   document.getElementById('nombres').value.trim(),
         apellidos: document.getElementById('apellidos').value.trim(),
-        cedula: document.getElementById('cedula').value.trim(),
-        correo: document.getElementById('correo').value.trim(),
-        contacto: document.getElementById('contacto').value.trim(),
-        rol: document.getElementById('rol').value.trim(),
+        cedula, correo, contacto,
+        rol:       document.getElementById('rol').value.trim(),
         municipio: document.getElementById('municipio').value,
-        institucion: document.getElementById('institucion').value.trim(),
         fechaRegistro: new Date().toLocaleString('es-CO')
       };
       try {
@@ -198,7 +218,7 @@
         showToast('Error al enviar. Intenta de nuevo.');
         btn.disabled = false; btn.textContent = 'Enviar inscripción';
       }
-    });
+    });;
   </script>
 </body>
 </html>

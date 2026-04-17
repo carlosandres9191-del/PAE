@@ -341,21 +341,16 @@
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnTRDJzk9S2d9Y9FaXTbEuia4ilt6vQ4sk1oNC4tQy-n3xmkHQ1wc0yk6YKQCvzdKG/exec";
 
-// ── USERS STORE (localStorage) ──────────────────────────────────────────────
-const USERS_KEY = 'pae2026_users';
+// ── USERS STORE (hardcodeado) ────────────────────────────────────────────────
 const SESSION_KEY = 'pae2026_session';
 
-function getUsers() {
-  const raw = localStorage.getItem(USERS_KEY);
-  if (raw) return JSON.parse(raw);
-  // Usuarios por defecto
-  const defaults = [
-    { id: 1, nombre: 'Mariceli', username: 'mariceli', password: 'Mari.2026*', rol: 'admin' }
-  ];
-  localStorage.setItem(USERS_KEY, JSON.stringify(defaults));
-  return defaults;
-}
-function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+let USERS = [
+  { id: 1, nombre: 'Mariceli', username: 'mariceli', password: 'Mari.2026*', rol: 'admin' },
+  { id: 2, nombre: 'Coordi',   username: 'coordi',   password: 'Coordi.2026*', rol: 'viewer' }
+];
+
+function getUsers() { return USERS; }
+function saveUsers(users) { USERS = users; }
 function getSession() { const s = sessionStorage.getItem(SESSION_KEY); return s ? JSON.parse(s) : null; }
 function setSession(u) { sessionStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
 function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
@@ -616,7 +611,6 @@ function savePass() {
   if (idx === -1) return;
   users[idx].password = p1;
   saveUsers(users);
-  // Actualizar sesión si es el mismo usuario
   const sess = getSession();
   if (sess && sess.id === changingPassId) { sess.password = p1; setSession(sess); }
   closeModal('passModal');
@@ -631,8 +625,7 @@ function openDelete(id) {
 }
 
 function confirmDelete() {
-  let users = getUsers().filter(u => u.id !== deletingUserId);
-  saveUsers(users);
+  saveUsers(getUsers().filter(u => u.id !== deletingUserId));
   closeModal('deleteModal');
   renderUsers();
   showToast('Usuario eliminado.');
