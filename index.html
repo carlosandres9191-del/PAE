@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inscripción - Primera Mesa Pública 2026 | PAE</title>
+  <style>
+    :root {
+      --primary: #2f6b3b;
+      --primary-dark: #1f4c29;
+      --secondary: #f4b400;
+      --secondary-dark: #d99600;
+      --accent-red: #d94b3d;
+      --text: #1f2937;
+      --white: #ffffff;
+      --shadow: 0 14px 40px rgba(0,0,0,.10);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(255,245,207,.95) 0%, transparent 28%),
+        radial-gradient(circle at bottom right, rgba(223,240,215,.9) 0%, transparent 24%),
+        linear-gradient(180deg, #f9f8ef 0%, #eef6e8 100%);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .floating-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .float-item {
+      position: absolute;
+      opacity: .16;
+      animation: floatY 8s ease-in-out infinite;
+      user-select: none;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,.08));
+    }
+
+    .float-item svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .book1 { width: 120px; height: 120px; top: 8%; left: 3%; animation-delay: 0s; }
+    .apple1 { width: 100px; height: 100px; top: 18%; right: 4%; animation-delay: 1s; }
+    .carrot1 { width: 120px; height: 120px; top: 58%; left: 2%; animation-delay: 2s; }
+    .book2 { width: 110px; height: 110px; bottom: 8%; right: 5%; animation-delay: 1.5s; }
+    .banana1 { width: 140px; height: 140px; bottom: 20%; left: 12%; animation-delay: 2.5s; }
+    .plate1 { width: 140px; height: 140px; top: 38%; right: 9%; animation-delay: .5s; }
+
+    @keyframes floatY {
+      0%, 100% { transform: translateY(0px) rotate(-2deg); }
+      50% { transform: translateY(-14px) rotate(2deg); }
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(47,107,59,.96), rgba(91,153,78,.94));
+      color: var(--white);
+      padding: 56px 20px 42px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      opacity: .16;
+      background: #fff7cc;
+    }
+
+    .hero::before {
+      width: 240px;
+      height: 240px;
+      top: -70px;
+      left: -50px;
+    }
+
+    .hero::after {
+      width: 180px;
+      height: 180px;
+      right: -30px;
+      bottom: -50px;
+      background: #f7c845;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.25);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: .3px;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1.1;
+    }
+
+    .hero p {
+      margin: 0 auto;
+      max-width: 860px;
+      font-size: 1.05rem;
+      line-height: 1.7;
+      opacity: .98;
+    }
+
+    .wrap {
+      width: min(1100px, calc(100% - 32px));
+      margin: -28px auto 50px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card {
+      background: rgba(255,255,255,.94);
+      backdrop-filter: blur(4px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      border: 1px solid #eceddc;
+    }
+
+    .top-strip {
+      height: 12px;
+      background: linear-gradient(90deg, var(--primary) 0%, #6aa84f 35%, var(--secondary) 70%, var(--accent-red) 100%);
+    }
+
+    .section {
+      padding: 30px;
+    }
+
+    .section-title {
+      margin: 0 0 6px;
+      color: var(--primary-dark);
+      font-size: 1.55rem;
+    }
+
+    .section-subtitle {
+      margin: 0 0 24px;
+      color: #4b5563;
+      line-height: 1.7;
+    }
+
+    .info-box {
+      background: linear-gradient(180deg, #fffaf0, #f4f8ea);
+      border: 1px solid #eadfbb;
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+      line-height: 1.6;
+      color: #475569;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 14px;
+      border: 1px solid #d7decf;
+      border-radius: 14px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+      background: #fffef9;
+    }
+
+    input:focus {
+      border-color: var(--secondary-dark);
+      box-shadow: 0 0 0 4px rgba(244,180,0,.16);
+      transform: translateY(-1px);
+    }
+
+    .actions {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    button {
+      border: none;
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-dark) 100%);
+      color: #1f2937;
+      padding: 15px 26px;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .15s ease, filter .2s ease;
+      box-shadow: 0 10px 20px rgba(217,150,0,.18);
+    }
+
+    button:hover {
+      filter: brightness(.98);
+      transform: translateY(-1px);
+    }
+
+    .helper {
+      color: #6b7280;
+      font-size: .95rem;
+      line-height: 1.5;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 18px 20px 28px;
+      color: #6b7280;
+      font-size: .92rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    @media (max-width: 760px) {
+      form {
+        grid-template-columns: 1fr;
+      }
+
+      .section {
+        padding: 22px;
+      }
+
+      .float-item {
+        opacity: .10;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="floating-bg">
+    <div class="float-item book1">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <rect x="18" y="24" width="56" height="44" rx="6" fill="#4e9b57"/>
+        <rect x="26" y="20" width="56" height="44" rx="6" fill="#f4b400"/>
+        <rect x="32" y="24" width="8" height="36" fill="#fff5cf"/>
+        <path d="M26 28 Q54 18 82 28" fill="none" stroke="#ffffff" stroke-width="3"/>
+      </svg>
+    </div>
+    <div class="float-item apple1">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="44" cy="55" r="22" fill="#d94b3d"/>
+        <circle cx="60" cy="55" r="22" fill="#e95c4d"/>
+        <rect x="49" y="20" width="5" height="16" rx="2" fill="#7a4a23"/>
+        <path d="M52 22 C62 10, 74 12, 78 22 C68 24, 59 28, 52 22 Z" fill="#4e9b57"/>
+      </svg>
+    </div>
+    <div class="float-item carrot1">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M56 24 L72 38 L48 82 Q44 88 38 84 Q32 80 36 74 Z" fill="#f28c28"/>
+        <path d="M58 24 C48 10, 36 12, 32 24" stroke="#4e9b57" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M64 28 C70 14, 82 14, 86 26" stroke="#5caf5d" stroke-width="6" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="float-item book2">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <rect x="18" y="24" width="56" height="44" rx="6" fill="#d94b3d"/>
+        <rect x="26" y="20" width="56" height="44" rx="6" fill="#4e9b57"/>
+        <rect x="32" y="24" width="8" height="36" fill="#fff5cf"/>
+        <path d="M26 28 Q54 18 82 28" fill="none" stroke="#ffffff" stroke-width="3"/>
+      </svg>
+    </div>
+    <div class="float-item banana1">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <path d="M28 68 C40 96, 88 104, 104 78 C78 88, 52 78, 40 52 C34 56, 30 60, 28 68 Z" fill="#f4d03f"/>
+        <path d="M37 55 C50 82, 79 89, 99 79" fill="none" stroke="#d9a700" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="float-item plate1">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="42" fill="#ffffff"/>
+        <circle cx="60" cy="60" r="34" fill="#eef6e8"/>
+        <circle cx="48" cy="56" r="10" fill="#d94b3d"/>
+        <circle cx="68" cy="66" r="9" fill="#4e9b57"/>
+        <ellipse cx="73" cy="48" rx="10" ry="7" fill="#f4b400"/>
+      </svg>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="badge">Primera Mesa Pública 2026</div>
+      <h1>Inscripción al Programa de Alimentación Escolar</h1>
+      <p>
+        Un espacio de participación para fortalecer el diálogo, la transparencia y el seguimiento al Programa de Alimentación Escolar - PAE.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <div class="top-strip"></div>
+      <div class="section">
+        <h2 class="section-title">Formulario de inscripción</h2>
+        <p class="section-subtitle">
+          Complete la información solicitada para participar en la Primera Mesa Pública 2026. Al enviar el formulario, será dirigido a una página de confirmación con el video informativo.
+        </p>
+
+        <div class="info-box">
+          <strong>Participa y haz parte de este encuentro.</strong><br>
+          La mesa pública del PAE promueve la participación de la comunidad educativa y fortalece el compromiso con la alimentación escolar de niños, niñas y adolescentes.
+        </div>
+
+        <form id="registroForm">
+          <div class="field">
+            <label for="nombres">Nombres</label>
+            <input type="text" id="nombres" name="nombres" placeholder="Ingrese sus nombres" required />
+          </div>
+
+          <div class="field">
+            <label for="apellidos">Apellidos</label>
+            <input type="text" id="apellidos" name="apellidos" placeholder="Ingrese sus apellidos" required />
+          </div>
+
+          <div class="field">
+            <label for="cedula">Número de cédula</label>
+            <input type="text" id="cedula" name="cedula" inputmode="numeric" placeholder="Ingrese su número de cédula" required />
+          </div>
+
+          <div class="field">
+            <label for="correo">Correo electrónico</label>
+            <input type="email" id="correo" name="correo" placeholder="ejemplo@correo.com" required />
+          </div>
+
+          <div class="field">
+            <label for="contacto">Número de contacto</label>
+            <input type="text" id="contacto" name="contacto" inputmode="tel" placeholder="Ingrese su número de contacto" required />
+          </div>
+
+          <div class="field">
+            <label for="rol">Rol / Cargo</label>
+            <input type="text" id="rol" name="rol" placeholder="Ej: Rector, Docente, Padre de familia" required />
+          </div>
+
+          <div class="field">
+            <label for="municipio">Municipio</label>
+            <input type="text" id="municipio" name="municipio" placeholder="Ingrese su municipio" required />
+          </div>
+
+          <div class="actions">
+            <button type="submit">Enviar inscripción</button>
+            <span class="helper">Después de enviar, el usuario será redirigido automáticamente a la página del video.</span>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer">
+    © 2026 Programa de Alimentación Escolar - Sitio de inscripción.
+  </div>
+
+  <script>
+    const form = document.getElementById('registroForm');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const data = {
+        nombres: document.getElementById('nombres').value.trim(),
+        apellidos: document.getElementById('apellidos').value.trim(),
+        cedula: document.getElementById('cedula').value.trim(),
+        correo: document.getElementById('correo').value.trim(),
+        contacto: document.getElementById('contacto').value.trim(),
+        rol: document.getElementById('rol').value.trim(),
+        municipio: document.getElementById('municipio').value.trim(),
+        fechaRegistro: new Date().toLocaleString('es-CO')
+      };
+
+      const registros = JSON.parse(localStorage.getItem('inscripcionesPAE2026') || '[]');
+      registros.push(data);
+      localStorage.setItem('inscripcionesPAE2026', JSON.stringify(registros));
+
+      window.location.href = 'gracias.html';
+    });
+  </script>
+</body>
+</html>
