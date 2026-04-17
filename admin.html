@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Admin — Inscripciones PAE 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --green: #2f6b3b; --green-dark: #1f4c29; --green-light: #6aa84f;
+      --gold: #f4b400; --red: #d94b3d; --red-dark: #b03020;
+      --text: #1a1a1a; --muted: #5c6370; --bg: #f2f1ea;
+      --white: #ffffff; --border: #e2e0d0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── TOPBAR ── */
+    .topbar { background: var(--green-dark); padding: 12px 28px; display: flex; justify-content: space-between; align-items: center; }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-logo { color: #ffd54f; font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 700; }
+    .topbar-sub { color: rgba(255,255,255,.5); font-size: .8rem; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .user-chip {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+      color: white; padding: 6px 14px; border-radius: 999px; font-size: .82rem;
+    }
+    .user-chip span { color: #ffd54f; font-weight: 700; }
+    .btn-link {
+      color: rgba(255,255,255,.65); font-size: .82rem; text-decoration: none;
+      border: 1px solid rgba(255,255,255,.18); padding: 6px 14px; border-radius: 999px;
+      transition: background .18s; cursor: pointer; background: none;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-link:hover { background: rgba(255,255,255,.1); color: white; }
+    .strip { height: 8px; background: linear-gradient(90deg, #1f4c29 0%, #6aa84f 35%, #f4b400 70%, #d94b3d 100%); }
+
+    /* ── LAYOUT ── */
+    .wrap { width: min(1200px, calc(100% - 32px)); margin: 28px auto 60px; }
+    .page-header { margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-family: 'Fraunces', serif; font-size: 1.8rem; font-weight: 700; color: var(--green-dark); }
+    .page-header p { color: var(--muted); font-size: .92rem; margin-top: 3px; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 22px; background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 5px; width: fit-content; }
+    .tab {
+      padding: 9px 20px; border-radius: 10px; border: none; background: none;
+      font-size: .88rem; font-weight: 700; font-family: 'DM Sans', sans-serif;
+      color: var(--muted); cursor: pointer; transition: all .18s;
+    }
+    .tab.active { background: var(--green-dark); color: white; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── STATS ── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .stat { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+    .stat-value { font-family: 'Fraunces', serif; font-size: 2rem; font-weight: 900; color: var(--green-dark); line-height: 1; }
+    .stat-label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; font-weight: 700; margin-top: 5px; }
+
+    /* ── TOOLBAR ── */
+    .toolbar { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .search-wrap { flex: 1; min-width: 200px; position: relative; }
+    .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search-wrap input { width: 100%; padding: 9px 12px 9px 34px; border: 1.5px solid var(--border); border-radius: 10px; font-size: .92rem; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .18s; }
+    .search-wrap input:focus { border-color: var(--green); }
+    .filter-sel { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: .92rem; font-family: 'DM Sans', sans-serif; outline: none; background: white; min-width: 150px; }
+    .filter-sel:focus { border-color: var(--green); }
+    .btn { padding: 9px 16px; border-radius: 10px; font-size: .86rem; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: filter .15s, transform .1s; display: flex; align-items: center; gap: 6px; }
+    .btn:hover { filter: brightness(.95); transform: translateY(-1px); }
+    .btn-excel { background: #1d6b35; color: white; }
+    .btn-reload { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); }
+    .btn-add { background: var(--green-dark); color: white; }
+    .btn-danger { background: #fef2f2; border: 1.5px solid #fecaca; color: var(--red-dark); }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn-edit { background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; }
+
+    /* ── TABLE ── */
+    .table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    thead tr { background: #f5f4ed; border-bottom: 1px solid var(--border); }
+    thead th { padding: 12px 14px; text-align: left; font-size: .75rem; font-weight: 700; color: var(--green-dark); text-transform: uppercase; letter-spacing: .3px; white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid #f0efe8; transition: background .12s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafaf6; }
+    tbody td { padding: 11px 14px; vertical-align: middle; }
+    .rol-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .74rem; font-weight: 700; background: #e8f5e9; color: #1b5e20; }
+    .table-footer { padding: 11px 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: .82rem; color: var(--muted); }
+    .empty-state { text-align: center; padding: 56px 20px; color: var(--muted); font-size: .93rem; }
+    .loading { text-align: center; padding: 44px; color: var(--muted); }
+    .dot { display: inline-block; animation: blink 1.2s ease-in-out infinite; }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+    /* ── USERS PANEL ── */
+    .users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .user-card {
+      background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .user-card-head { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
+      display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1rem; flex-shrink: 0;
+    }
+    .avatar.admin { background: linear-gradient(135deg, #1f4c29 0%, #2f6b3b 100%); }
+    .user-info h3 { font-size: .97rem; font-weight: 700; color: var(--text); }
+    .user-info .role-tag {
+      display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-top: 3px;
+    }
+    .role-tag.admin { background: #fef3c7; color: #92400e; }
+    .role-tag.viewer { background: #eff6ff; color: #1d4ed8; }
+    .user-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+    /* ── MODAL ── */
+    .modal-bg {
+      display: none; position: fixed; inset: 0; background: rgba(10,20,10,.55);
+      backdrop-filter: blur(5px); z-index: 200; align-items: center; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: white; border-radius: 18px; padding: 36px 32px 28px;
+      width: min(440px, calc(100% - 32px)); box-shadow: 0 32px 80px rgba(0,0,0,.2); position: relative;
+    }
+    .modal h3 { font-family: 'Fraunces', serif; font-size: 1.4rem; color: var(--green-dark); margin-bottom: 5px; }
+    .modal .sub { color: var(--muted); font-size: .9rem; margin-bottom: 22px; line-height: 1.5; }
+    .mfield { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .mfield label { font-size: .78rem; font-weight: 700; color: var(--green-dark); text-transform: uppercase; }
+    .mfield input, .mfield select {
+      padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 11px;
+      font-size: .95rem; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .18s, box-shadow .18s;
+    }
+    .mfield input:focus, .mfield select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(47,107,59,.12); }
+    .mfield select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235c6370' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+    .btn-primary { flex: 1; background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%); color: white; border: none; padding: 13px; border-radius: 11px; font-size: .95rem; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: filter .15s; }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn-cancel { padding: 13px 20px; border: 1.5px solid var(--border); border-radius: 11px; background: none; font-size: .95rem; font-family: 'DM Sans', sans-serif; cursor: pointer; color: var(--muted); }
+    .btn-cancel:hover { background: var(--bg); }
+    .modal-error { color: var(--red); font-size: .83rem; margin-top: 8px; display: none; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; cursor: pointer; color: var(--muted); font-size: 1.2rem; line-height: 1; padding: 4px 8px; border-radius: 8px; }
+    .modal-close:hover { background: var(--bg); }
+
+    /* ── AUTH ── */
+    .auth-overlay { display: flex; position: fixed; inset: 0; background: rgba(10,20,10,.65); backdrop-filter: blur(6px); z-index: 300; align-items: center; justify-content: center; }
+    .auth-card { background: white; border-radius: 20px; padding: 44px 36px 34px; width: min(400px, calc(100% - 32px)); box-shadow: 0 32px 80px rgba(0,0,0,.22); }
+    .auth-card h2 { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--green-dark); margin-bottom: 6px; }
+    .auth-card p { color: var(--muted); font-size: .92rem; margin-bottom: 26px; line-height: 1.6; }
+    .auth-error { color: var(--red); font-size: .84rem; margin-top: 10px; display: none; }
+
+    .toast { display: none; position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1f4c29; color: white; padding: 13px 22px; border-radius: 12px; font-size: .92rem; font-weight: 600; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,.2); white-space: nowrap; }
+    .toast.show { display: block; animation: fadeUp .3s ease; }
+    .toast.error { background: var(--red-dark); }
+    @keyframes fadeUp { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+    @media (max-width: 600px) { .stats { grid-template-columns: repeat(2,1fr); } .topbar { padding: 10px 16px; } }
+  </style>
+</head>
+<body>
+
+<!-- AUTH OVERLAY -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <h2>Panel de administración</h2>
+    <p>Ingresa tu usuario y contraseña para acceder al panel PAE 2026.</p>
+    <div class="mfield">
+      <label>Usuario</label>
+      <input type="text" id="loginUser" placeholder="Nombre de usuario" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <div class="mfield">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:4px" onclick="doLogin()">Ingresar</button>
+    <p class="auth-error" id="loginError">Usuario o contraseña incorrectos.</p>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-logo">PAE 2026</span>
+    <span class="topbar-sub">Panel administrativo</span>
+  </div>
+  <div class="topbar-right">
+    <div class="user-chip">Sesión: <span id="sessionName">—</span></div>
+    <a href="index.html" class="btn-link">← Formulario</a>
+    <button class="btn-link" onclick="logout()">Cerrar sesión</button>
+  </div>
+</div>
+<div class="strip"></div>
+
+<main class="wrap">
+  <div class="page-header">
+    <div>
+      <h1>Registros de inscripción</h1>
+      <p>Primera Mesa Pública 2026 — Visualización, exportación y gestión</p>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('registros',this)">Inscripciones</button>
+    <button class="tab" onclick="switchTab('usuarios',this)" id="tabUsuarios" style="display:none">Gestión de usuarios</button>
+  </div>
+
+  <!-- TAB REGISTROS -->
+  <div class="tab-panel active" id="panel-registros">
+    <div class="stats">
+      <div class="stat"><div class="stat-value" id="totalCount">—</div><div class="stat-label">Total inscritos</div></div>
+      <div class="stat"><div class="stat-value" id="municipioCount">—</div><div class="stat-label">Municipios</div></div>
+      <div class="stat"><div class="stat-value" id="hoyCount">—</div><div class="stat-label">Hoy</div></div>
+      <div class="stat"><div class="stat-value" id="rolCount">—</div><div class="stat-label">Roles distintos</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="Buscar por nombre, cédula, municipio..." oninput="renderTable()" />
+      </div>
+      <select class="filter-sel" id="filterMun" onchange="renderTable()">
+        <option value="">Todos los municipios</option>
+      </select>
+      <button class="btn btn-reload" onclick="loadData()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        Actualizar
+      </button>
+      <button class="btn btn-excel" onclick="exportExcel()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Exportar Excel
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Fecha</th><th>Nombres</th><th>Apellidos</th>
+            <th>Cédula</th><th>Correo</th><th>Contacto</th>
+            <th>Rol / Cargo</th><th>Municipio</th><th>Institución</th>
+          </tr></thead>
+          <tbody id="tableBody">
+            <tr><td colspan="10" class="loading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span> &nbsp;Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span id="countLabel">Cargando...</span>
+        <span>Datos en tiempo real · Google Sheets</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB USUARIOS -->
+  <div class="tab-panel" id="panel-usuarios">
+    <div class="toolbar">
+      <span style="font-size:.9rem;color:var(--muted);flex:1">Administra quién puede acceder al panel y con qué permisos.</span>
+      <button class="btn btn-add" onclick="openAddUser()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Agregar usuario
+      </button>
+    </div>
+    <div class="users-grid" id="usersGrid"></div>
+  </div>
+</main>
+
+<!-- MODAL AGREGAR / EDITAR USUARIO -->
+<div class="modal-bg" id="userModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('userModal')">✕</button>
+    <h3 id="modalTitle">Agregar usuario</h3>
+    <p class="sub" id="modalSub">Completa los datos del nuevo usuario.</p>
+    <div class="mfield">
+      <label>Nombre completo</label>
+      <input type="text" id="uNombre" placeholder="Ej: Mariceli García" />
+    </div>
+    <div class="mfield">
+      <label>Nombre de usuario</label>
+      <input type="text" id="uUser" placeholder="Ej: mariceli" />
+    </div>
+    <div class="mfield" id="passField">
+      <label id="passLabel">Contraseña</label>
+      <input type="password" id="uPass" placeholder="Mínimo 6 caracteres" />
+    </div>
+    <div class="mfield">
+      <label>Rol</label>
+      <select id="uRol">
+        <option value="admin">Administrador — puede gestionar usuarios</option>
+        <option value="viewer">Visualizador — solo ver registros</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('userModal')">Cancelar</button>
+      <button class="btn-primary" id="modalBtn" onclick="saveUser()">Guardar</button>
+    </div>
+    <p class="modal-error" id="modalError"></p>
+  </div>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div class="modal-bg" id="passModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('passModal')">✕</button>
+    <h3>Cambiar contraseña</h3>
+    <p class="sub" id="passModalSub">Nueva contraseña para el usuario.</p>
+    <div class="mfield">
+      <label>Nueva contraseña</label>
+      <input type="password" id="newPass1" placeholder="Mínimo 6 caracteres" />
+    </div>
+    <div class="mfield">
+      <label>Confirmar contraseña</label>
+      <input type="password" id="newPass2" placeholder="Repite la contraseña" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('passModal')">Cancelar</button>
+      <button class="btn-primary" onclick="savePass()">Guardar contraseña</button>
+    </div>
+    <p class="modal-error" id="passError"></p>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR ELIMINAR -->
+<div class="modal-bg" id="deleteModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+    <h3>Eliminar usuario</h3>
+    <p class="sub" id="deleteMsg">¿Estás segura de que deseas eliminar este usuario? Esta acción no se puede deshacer.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('deleteModal')">Cancelar</button>
+      <button class="btn-primary" style="background:var(--red);flex:none;padding:13px 22px" onclick="confirmDelete()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx-in7LH32KLHg6cKk6GI4-Sk1L1MCtAcdawtqiYeWL78QC4frQSA_jpvMBYXFhKPLs/exec";
+
+// ── USERS STORE (localStorage) ──────────────────────────────────────────────
+const USERS_KEY = 'pae2026_users';
+const SESSION_KEY = 'pae2026_session';
+
+function getUsers() {
+  const raw = localStorage.getItem(USERS_KEY);
+  if (raw) return JSON.parse(raw);
+  // Usuarios por defecto
+  const defaults = [
+    { id: 1, nombre: 'Mariceli', username: 'mariceli', password: 'Mari.2026*', rol: 'admin' }
+  ];
+  localStorage.setItem(USERS_KEY, JSON.stringify(defaults));
+  return defaults;
+}
+function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+function getSession() { const s = sessionStorage.getItem(SESSION_KEY); return s ? JSON.parse(s) : null; }
+function setSession(u) { sessionStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
+function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+function doLogin() {
+  const uVal = document.getElementById('loginUser').value.trim();
+  const pVal = document.getElementById('loginPass').value;
+  const users = getUsers();
+  const found = users.find(u => u.username === uVal && u.password === pVal);
+  if (!found) { document.getElementById('loginError').style.display = 'block'; return; }
+  setSession(found);
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('sessionName').textContent = found.nombre;
+  if (found.rol === 'admin') {
+    document.getElementById('tabUsuarios').style.display = 'block';
+  }
+  loadData();
+}
+
+function logout() { clearSession(); location.reload(); }
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const sess = getSession();
+  if (sess) {
+    document.getElementById('authOverlay').style.display = 'none';
+    document.getElementById('sessionName').textContent = sess.nombre;
+    if (sess.rol === 'admin') document.getElementById('tabUsuarios').style.display = 'block';
+    loadData();
+    renderUsers();
+  }
+});
+
+// ── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  if (id === 'usuarios') renderUsers();
+}
+
+// ── DATA ─────────────────────────────────────────────────────────────────────
+let allData = [];
+
+async function loadData() {
+  document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="loading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span> &nbsp;Cargando registros...</td></tr>';
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=get');
+    const data = await res.json();
+    allData = Array.isArray(data) ? data : [];
+    updateStats();
+    buildMuniFilter();
+    renderTable();
+  } catch (err) {
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="empty-state">Error al cargar los datos. Verifica la URL del script.</td></tr>';
+  }
+}
+
+function updateStats() {
+  document.getElementById('totalCount').textContent = allData.length;
+  const munis = new Set(allData.map(r => r['Municipio'] || r.municipio).filter(Boolean));
+  document.getElementById('municipioCount').textContent = munis.size;
+  const roles = new Set(allData.map(r => r['Rol'] || r.rol).filter(Boolean));
+  document.getElementById('rolCount').textContent = roles.size;
+  const hoy = new Date().toLocaleDateString('es-CO');
+  document.getElementById('hoyCount').textContent = allData.filter(r => (r['Fecha']||r.fechaRegistro||'').startsWith(hoy)).length;
+}
+
+function buildMuniFilter() {
+  const munis = [...new Set(allData.map(r => r['Municipio']||r.municipio).filter(Boolean))].sort();
+  const sel = document.getElementById('filterMun');
+  sel.innerHTML = '<option value="">Todos los municipios</option>';
+  munis.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
+}
+
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const muni   = document.getElementById('filterMun').value;
+  const filtered = allData.filter(row => {
+    const text = Object.values(row).join(' ').toLowerCase();
+    return (!search || text.includes(search)) && (!muni || (row['Municipio']||row.municipio) === muni);
+  });
+  const body = document.getElementById('tableBody');
+  if (!filtered.length) {
+    body.innerHTML = `<tr><td colspan="10" class="empty-state">${allData.length===0?'Aún no hay registros.':'Sin resultados para tu búsqueda.'}</td></tr>`;
+    document.getElementById('countLabel').textContent = '0 registros';
+    return;
+  }
+  body.innerHTML = filtered.map((row, i) => {
+    const g = k => row[k] || row[k.toLowerCase()] || '';
+    return `<tr>
+      <td style="color:var(--muted);font-size:.8rem">${i+1}</td>
+      <td style="font-size:.8rem;white-space:nowrap;color:var(--muted)">${g('Fecha')||g('fechaRegistro')}</td>
+      <td><strong>${g('Nombres')}</strong></td>
+      <td>${g('Apellidos')}</td>
+      <td style="font-family:monospace;font-size:.85rem">${g('Cédula')}</td>
+      <td style="font-size:.83rem">${g('Correo')}</td>
+      <td style="font-size:.83rem">${g('Contacto')}</td>
+      <td><span class="rol-badge">${g('Rol')}</span></td>
+      <td>${g('Municipio')}</td>
+      <td style="font-size:.83rem;color:var(--muted)">${g('Institución')||g('institucion')}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('countLabel').textContent = `${filtered.length} registro${filtered.length!==1?'s':''} ${filtered.length<allData.length?'(de '+allData.length+' total)':''}`;
+}
+
+function exportExcel() {
+  if (!allData.length) { showToast('No hay datos para exportar.', true); return; }
+  const rows = allData.map((r,i) => ({
+    '#': i+1,
+    'Fecha': r['Fecha']||r.fechaRegistro||'',
+    'Nombres': r['Nombres']||r.nombres||'',
+    'Apellidos': r['Apellidos']||r.apellidos||'',
+    'Cédula': r['Cédula']||r.cedula||'',
+    'Correo': r['Correo']||r.correo||'',
+    'Contacto': r['Contacto']||r.contacto||'',
+    'Rol / Cargo': r['Rol']||r.rol||'',
+    'Municipio': r['Municipio']||r.municipio||'',
+    'Institución': r['Institución']||r.institucion||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:4},{wch:20},{wch:18},{wch:18},{wch:14},{wch:26},{wch:14},{wch:24},{wch:20},{wch:28}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inscripciones PAE 2026');
+  XLSX.writeFile(wb, `Inscripciones_PAE2026_${new Date().toLocaleDateString('es-CO').replace(/\//g,'-')}.xlsx`);
+}
+
+// ── USERS MANAGEMENT ─────────────────────────────────────────────────────────
+function renderUsers() {
+  const sess = getSession();
+  const users = getUsers();
+  const grid = document.getElementById('usersGrid');
+  grid.innerHTML = users.map(u => `
+    <div class="user-card">
+      <div class="user-card-head">
+        <div class="avatar ${u.rol==='admin'?'admin':''}">${u.nombre.charAt(0).toUpperCase()}</div>
+        <div class="user-info">
+          <h3>${u.nombre}</h3>
+          <span>@${u.username}</span><br>
+          <span class="role-tag ${u.rol}">${u.rol==='admin'?'Administrador':'Visualizador'}</span>
+        </div>
+      </div>
+      <div class="user-card-actions">
+        ${u.id!==1||sess.id===1?`<button class="btn btn-edit" onclick="openEditUser(${u.id})">Editar</button>`:''}
+        <button class="btn btn-edit" onclick="openChangePass(${u.id})">Cambiar contraseña</button>
+        ${u.id!==1?`<button class="btn btn-danger" onclick="openDelete(${u.id})">Eliminar</button>`:'<span style="font-size:.78rem;color:var(--muted);padding:4px 2px">Cuenta principal</span>'}
+      </div>
+    </div>
+  `).join('');
+}
+
+let editingUserId = null;
+let deletingUserId = null;
+let changingPassId = null;
+
+function openAddUser() {
+  editingUserId = null;
+  document.getElementById('modalTitle').textContent = 'Agregar usuario';
+  document.getElementById('modalSub').textContent = 'Completa los datos del nuevo usuario.';
+  document.getElementById('passLabel').textContent = 'Contraseña';
+  document.getElementById('passField').style.display = 'flex';
+  document.getElementById('uNombre').value = '';
+  document.getElementById('uUser').value = '';
+  document.getElementById('uPass').value = '';
+  document.getElementById('uRol').value = 'viewer';
+  document.getElementById('modalError').style.display = 'none';
+  document.getElementById('userModal').classList.add('open');
+}
+
+function openEditUser(id) {
+  const u = getUsers().find(x => x.id === id);
+  if (!u) return;
+  editingUserId = id;
+  document.getElementById('modalTitle').textContent = 'Editar usuario';
+  document.getElementById('modalSub').textContent = 'Modifica los datos del usuario.';
+  document.getElementById('passField').style.display = 'none';
+  document.getElementById('uNombre').value = u.nombre;
+  document.getElementById('uUser').value = u.username;
+  document.getElementById('uRol').value = u.rol;
+  document.getElementById('modalError').style.display = 'none';
+  document.getElementById('userModal').classList.add('open');
+}
+
+function saveUser() {
+  const nombre = document.getElementById('uNombre').value.trim();
+  const username = document.getElementById('uUser').value.trim().toLowerCase();
+  const password = document.getElementById('uPass').value;
+  const rol = document.getElementById('uRol').value;
+  const errEl = document.getElementById('modalError');
+
+  if (!nombre || !username) { errEl.textContent = 'Nombre y usuario son obligatorios.'; errEl.style.display='block'; return; }
+
+  let users = getUsers();
+  if (editingUserId) {
+    const idx = users.findIndex(u => u.id === editingUserId);
+    if (idx === -1) return;
+    const dup = users.find(u => u.username === username && u.id !== editingUserId);
+    if (dup) { errEl.textContent = 'Ese nombre de usuario ya existe.'; errEl.style.display='block'; return; }
+    users[idx] = { ...users[idx], nombre, username, rol };
+  } else {
+    if (!password || password.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display='block'; return; }
+    if (users.find(u => u.username === username)) { errEl.textContent = 'Ese nombre de usuario ya existe.'; errEl.style.display='block'; return; }
+    const newId = Math.max(...users.map(u=>u.id), 0) + 1;
+    users.push({ id: newId, nombre, username, password, rol });
+  }
+  saveUsers(users);
+  closeModal('userModal');
+  renderUsers();
+  showToast(editingUserId ? 'Usuario actualizado.' : 'Usuario agregado correctamente.');
+}
+
+function openChangePass(id) {
+  changingPassId = id;
+  const u = getUsers().find(x => x.id === id);
+  document.getElementById('passModalSub').textContent = `Nueva contraseña para @${u.username}.`;
+  document.getElementById('newPass1').value = '';
+  document.getElementById('newPass2').value = '';
+  document.getElementById('passError').style.display = 'none';
+  document.getElementById('passModal').classList.add('open');
+}
+
+function savePass() {
+  const p1 = document.getElementById('newPass1').value;
+  const p2 = document.getElementById('newPass2').value;
+  const errEl = document.getElementById('passError');
+  if (p1.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display='block'; return; }
+  if (p1 !== p2) { errEl.textContent = 'Las contraseñas no coinciden.'; errEl.style.display='block'; return; }
+  let users = getUsers();
+  const idx = users.findIndex(u => u.id === changingPassId);
+  if (idx === -1) return;
+  users[idx].password = p1;
+  saveUsers(users);
+  // Actualizar sesión si es el mismo usuario
+  const sess = getSession();
+  if (sess && sess.id === changingPassId) { sess.password = p1; setSession(sess); }
+  closeModal('passModal');
+  showToast('Contraseña actualizada correctamente.');
+}
+
+function openDelete(id) {
+  deletingUserId = id;
+  const u = getUsers().find(x => x.id === id);
+  document.getElementById('deleteMsg').textContent = `¿Eliminar al usuario @${u.username} (${u.nombre})? Esta acción no se puede deshacer.`;
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+function confirmDelete() {
+  let users = getUsers().filter(u => u.id !== deletingUserId);
+  saveUsers(users);
+  closeModal('deleteModal');
+  renderUsers();
+  showToast('Usuario eliminado.');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
