@@ -102,8 +102,11 @@
           A continuación podrás visualizar el contenido informativo preparado para los participantes de esta mesa pública.
         </div>
 
+        <div id="autoplay-notice" style="display:none;background:#fffbf0;border:1px solid #f0dfa0;border-left:4px solid #f4b400;border-radius:0 12px 12px 0;padding:12px 16px;margin-bottom:16px;color:#5a4a1a;font-size:.9rem;">
+          <strong>Toca en cualquier parte de la pantalla</strong> para reproducir el video con sonido.
+        </div>
         <div class="video-frame">
-          <video controls autoplay muted playsinline>
+          <video controls autoplay playsinline id="mainVideo">
             <source src="video.mp4" type="video/mp4" />
             Tu navegador no soporta la reproducción de video.
           </video>
@@ -115,5 +118,28 @@
   </main>
 
   <div class="footer">© 2026 Programa de Alimentación Escolar — Sitio de inscripción.</div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', function() {
+      const video = document.getElementById('mainVideo');
+      video.muted = false;
+      video.volume = 1.0;
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(function() {
+          // El navegador bloqueó autoplay con sonido — se reproduce al primer clic del usuario
+          document.body.addEventListener('click', function unlockAudio() {
+            video.muted = false;
+            video.volume = 1.0;
+            video.play();
+            document.body.removeEventListener('click', unlockAudio);
+          }, { once: true });
+          // Mostrar aviso
+          const notice = document.getElementById('autoplay-notice');
+          if (notice) notice.style.display = 'block';
+        });
+      }
+    });
+  </script>
 </body>
 </html>
