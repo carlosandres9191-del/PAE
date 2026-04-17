@@ -404,23 +404,26 @@ let allData = [];
 
 async function loadData() {
   document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="loading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span> &nbsp;Cargando registros...</td></tr>';
-  const proxies = [
-    url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+
+  async function tryFetch(url, parseWrapper) {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const text = await res.text();
+    const parsed = JSON.parse(text);
+    return parseWrapper ? JSON.parse(parsed.contents) : parsed;
+  }
+
+  const attempts = [
+    () => tryFetch(SCRIPT_URL, false),
+    () => tryFetch('https://corsproxy.io/?' + encodeURIComponent(SCRIPT_URL), false),
+    () => tryFetch('https://api.allorigins.win/get?url=' + encodeURIComponent(SCRIPT_URL), true),
+    () => tryFetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(SCRIPT_URL), false),
   ];
-  for (let i = 0; i < proxies.length; i++) {
+
+  for (const attempt of attempts) {
     try {
-      const res = await fetch(proxies[i](SCRIPT_URL), { signal: AbortSignal.timeout(8000) });
-      let data;
-      const text = await res.text();
-      // allorigins devuelve {contents: "..."}, los otros devuelven JSON directo
-      try {
-        const parsed = JSON.parse(text);
-        data = parsed.contents ? JSON.parse(parsed.contents) : parsed;
-      } catch(e) { continue; }
-      if (Array.isArray(data) || typeof data === 'object') {
-        allData = Array.isArray(data) ? data : [];
+      const data = await attempt();
+      if (Array.isArray(data)) {
+        allData = data;
         updateStats();
         buildMuniFilter();
         renderTable();
@@ -428,13 +431,10 @@ async function loadData() {
       }
     } catch(e) { continue; }
   }
-  // Todos los proxies fallaron
+
   document.getElementById('tableBody').innerHTML = `<tr><td colspan="10" class="empty-state">
-    <strong>No se pudo conectar con Google Sheets.</strong><br><br>
-    Posibles causas:<br>
-    1. El Apps Script no está publicado como <strong>"Cualquier persona"</strong><br>
-    2. No has creado una <strong>nueva versión</strong> al reimplementar<br><br>
-    <button onclick="loadData()" style="background:#2f6b3b;color:white;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:700;">Reintentar</button>
+    <strong>No se pudo cargar.</strong> Los datos existen en Google Sheets pero no se pueden leer desde aquí.<br><br>
+    <button onclick="loadData()" style="background:#2f6b3b;color:white;border:none;padding:10px 20px;border-radius:10px;cursor:pointer;font-weight:700;font-family:inherit;">Reintentar</button>
   </td></tr>`;
   document.getElementById('countLabel').textContent = 'Sin conexión';
 }
