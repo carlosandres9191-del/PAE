@@ -70,15 +70,18 @@
     .filter-sel:focus { border-color: var(--green); }
     .btn { padding: 9px 16px; border-radius: 10px; font-size: .86rem; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: filter .15s, transform .1s; display: flex; align-items: center; gap: 6px; }
     .btn:hover { filter: brightness(.95); transform: translateY(-1px); }
+    .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
     .btn-excel { background: #1d6b35; color: white; }
     .btn-reload { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); }
+    .btn-reload .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
     .btn-add { background: var(--green-dark); color: white; }
     .btn-danger { background: #fef2f2; border: 1.5px solid #fecaca; color: var(--red-dark); }
     .btn-danger:hover { background: #fee2e2; }
     .btn-edit { background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; }
 
     /* ── TABLE ── */
-    .table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; }
     .table-scroll { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: .88rem; }
     thead tr { background: #f5f4ed; border-bottom: 1px solid var(--border); }
@@ -95,6 +98,14 @@
     .dot:nth-child(2) { animation-delay: .2s; }
     .dot:nth-child(3) { animation-delay: .4s; }
     @keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+    .refresh-overlay {
+      position: absolute; inset: 0; background: rgba(255,255,255,.72);
+      backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center;
+      z-index: 10; font-weight: 700; color: var(--green-dark); font-size: .95rem;
+      border-radius: 14px;
+    }
+    .refresh-overlay.show { display: flex; }
 
     /* ── USERS PANEL ── */
     .users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
@@ -114,7 +125,7 @@
     }
     .role-tag.admin { background: #fef3c7; color: #92400e; }
     .role-tag.viewer { background: #eff6ff; color: #1d4ed8; }
-    .user-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+    .user-card-actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 
     /* ── MODAL ── */
     .modal-bg {
@@ -152,7 +163,7 @@
     .auth-card p { color: var(--muted); font-size: .92rem; margin-bottom: 26px; line-height: 1.6; }
     .auth-error { color: var(--red); font-size: .84rem; margin-top: 10px; display: none; }
 
-    .toast { display: none; position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1f4c29; color: white; padding: 13px 22px; border-radius: 12px; font-size: .92rem; font-weight: 600; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,.2); white-space: nowrap; }
+    .toast { display: none; position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1f4c29; color: white; padding: 13px 22px; border-radius: 12px; font-size: .92rem; font-weight: 600; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,.2); white-space: nowrap; max-width: 92vw; }
     .toast.show { display: block; animation: fadeUp .3s ease; }
     .toast.error { background: var(--red-dark); }
     @keyframes fadeUp { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
@@ -225,9 +236,9 @@
       <select class="filter-sel" id="filterMun" onchange="renderTable()">
         <option value="">Todos los municipios</option>
       </select>
-      <button class="btn btn-reload" onclick="loadData()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-        Actualizar
+      <button class="btn btn-reload" id="btnReload" onclick="reloadData()">
+        <svg id="reloadIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        <span id="reloadLabel">Actualizar</span>
       </button>
       <button class="btn btn-excel" onclick="exportExcel()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -236,6 +247,9 @@
     </div>
 
     <div class="table-wrap">
+      <div class="refresh-overlay" id="refreshOverlay">
+        <span><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span> &nbsp;Actualizando desde Google Sheets…</span>
+      </div>
       <div class="table-scroll">
         <table>
           <thead><tr>
@@ -341,16 +355,26 @@
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnTRDJzk9S2d9Y9FaXTbEuia4ilt6vQ4sk1oNC4tQy-n3xmkHQ1wc0yk6YKQCvzdKG/exec";
 
-// ── USERS STORE (hardcodeado) ────────────────────────────────────────────────
+// ── USERS STORE ────────────────────────────────────────────────
 const SESSION_KEY = 'pae2026_session';
+const USERS_KEY   = 'pae2026_users';
 
-let USERS = [
+const DEFAULT_USERS = [
   { id: 1, nombre: 'Mariceli', username: 'mariceli', password: 'Mari.2026*', rol: 'admin' },
   { id: 2, nombre: 'Coordi',   username: 'coordi',   password: 'Coordi.2026*', rol: 'viewer' }
 ];
 
-function getUsers() { return USERS; }
-function saveUsers(users) { USERS = users; }
+function getUsers() {
+  try {
+    const raw = localStorage.getItem(USERS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
+  return [...DEFAULT_USERS];
+}
+function saveUsers(users) {
+  try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
+}
 function getSession() { const s = sessionStorage.getItem(SESSION_KEY); return s ? JSON.parse(s) : null; }
 function setSession(u) { sessionStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
 function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
@@ -396,15 +420,50 @@ function switchTab(id, el) {
 
 // ── DATA ─────────────────────────────────────────────────────────────────────
 let allData = [];
+let isReloading = false;
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgRf1wnhcjhy9O6W164BfvKRq8v3te1XQ7w4XR2wG4pnyeAoADejHQ7yE4-sFgU47a9frAm_Q8-zxS/pub?gid=0&single=true&output=csv";
 
+// Parser CSV robusto que maneja comas y comillas dentro de campos
+function parseCSV(text) {
+  const rows = [];
+  let cur = [''], col = 0, inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"' && text[i+1] === '"') { cur[col] += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { cur[col] += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { col++; cur[col] = ''; }
+      else if (c === '\r') { /* ignorar */ }
+      else if (c === '\n') { rows.push(cur); cur = ['']; col = 0; }
+      else { cur[col] += c; }
+    }
+  }
+  if (cur.length > 1 || cur[0] !== '') rows.push(cur);
+  if (!rows.length) return [];
+  const headers = rows[0].map(h => (h||'').trim());
+  return rows.slice(1)
+    .filter(r => r && r.some(v => (v||'').trim() !== ''))  // descarta filas vacías
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = ((r[i]||'')+'').trim(); });
+      return obj;
+    });
+}
+
+// CARGA INICIAL — muestra loading, sustituye datos
 async function loadData() {
   document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="loading"><span class="dot">●</span><span class="dot">●</span><span class="dot">●</span> &nbsp;Cargando registros...</td></tr>';
   try {
-    const res = await fetch(CSV_URL);
+    const url = CSV_URL + '&_=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
-    allData = csvToJson(text);
+    const parsed = parseCSV(text);
+    allData = parsed;
     updateStats();
     buildMuniFilter();
     renderTable();
@@ -417,24 +476,53 @@ async function loadData() {
   }
 }
 
-function csvToJson(csv) {
-  const lines = csv.trim().split("\n");
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.replace(/^"|"$/g, '').trim());
-  return lines.slice(1).map(line => {
-    const values = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      if (line[i] === '"') { inQuotes = !inQuotes; }
-      else if (line[i] === ',' && !inQuotes) { values.push(current.trim()); current = ''; }
-      else { current += line[i]; }
+// ACTUALIZAR — NO borra la tabla si falla: mantiene los datos actuales
+async function reloadData() {
+  if (isReloading) return;
+  isReloading = true;
+  const btn = document.getElementById('btnReload');
+  const icon = document.getElementById('reloadIcon');
+  const label = document.getElementById('reloadLabel');
+  const overlay = document.getElementById('refreshOverlay');
+  btn.disabled = true;
+  icon.classList.add('spin');
+  label.textContent = 'Actualizando...';
+  overlay.classList.add('show');
+
+  const filterMun = document.getElementById('filterMun').value;
+
+  try {
+    const url = CSV_URL + '&_=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const parsed = parseCSV(text);
+
+    // Protección: si la respuesta viene vacía pero ya teníamos datos, NO sobreescribir
+    if (parsed.length === 0 && allData.length > 0) {
+      showToast('La hoja no devolvió registros. Se conservan los datos actuales.', true);
+    } else {
+      allData = parsed;
+      updateStats();
+      buildMuniFilter();
+      // Mantener el filtro de municipio seleccionado si sigue existiendo
+      const selMun = document.getElementById('filterMun');
+      if (filterMun && [...selMun.options].some(o => o.value === filterMun)) {
+        selMun.value = filterMun;
+      }
+      renderTable();
+      showToast('✓ Datos actualizados (' + allData.length + ' registros).');
     }
-    values.push(current.trim());
-    const obj = {};
-    headers.forEach((h, i) => { obj[h] = (values[i] || '').replace(/^"|"$/g, ''); });
-    return obj;
-  });
+  } catch(err) {
+    // Si hay error, NO tocamos allData. Solo avisamos al usuario.
+    showToast('No se pudo actualizar. Se conservan los datos actuales.', true);
+  } finally {
+    btn.disabled = false;
+    icon.classList.remove('spin');
+    label.textContent = 'Actualizar';
+    overlay.classList.remove('show');
+    isReloading = false;
+  }
 }
 
 function updateStats() {
@@ -450,8 +538,10 @@ function updateStats() {
 function buildMuniFilter() {
   const munis = [...new Set(allData.map(r => r['Municipio']||r.municipio).filter(Boolean))].sort();
   const sel = document.getElementById('filterMun');
+  const current = sel.value;
   sel.innerHTML = '<option value="">Todos los municipios</option>';
   munis.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
+  if (current && munis.includes(current)) sel.value = current;
 }
 
 function renderTable() {
@@ -509,6 +599,7 @@ function exportExcel() {
 // ── USERS MANAGEMENT ─────────────────────────────────────────────────────────
 function renderUsers() {
   const sess = getSession();
+  if (!sess) return;
   const users = getUsers();
   const grid = document.getElementById('usersGrid');
   grid.innerHTML = users.map(u => `
@@ -638,7 +729,7 @@ function showToast(msg, isError=false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show' + (isError ? ' error' : '');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(() => t.classList.remove('show'), 3500);
 }
 </script>
 </body>

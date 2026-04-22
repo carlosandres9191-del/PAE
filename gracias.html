@@ -44,39 +44,135 @@
     .top-inner { position: relative; z-index: 1; }
 
     .check-circle {
-      width: 72px; height: 72px; background: rgba(255,255,255,.15);
+      width: 82px; height: 82px; background: rgba(255,255,255,.15);
       border: 2px solid rgba(255,255,255,.3); border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       margin: 0 auto 20px;
+      animation: pop .5s ease;
     }
-    .check-circle svg { width: 32px; height: 32px; }
+    @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .check-circle svg { width: 38px; height: 38px; }
 
-    .top h1 { font-family: 'Fraunces', serif; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; margin-bottom: 10px; }
-    .top p { font-size: 1.02rem; line-height: 1.7; opacity: .88; max-width: 600px; margin: 0 auto; }
+    .top h1 { font-family: 'Fraunces', serif; font-size: clamp(1.9rem, 4.2vw, 2.7rem); font-weight: 900; margin-bottom: 10px; }
+    .top p { font-size: 1.04rem; line-height: 1.7; opacity: .9; max-width: 620px; margin: 0 auto; }
 
-    .content { padding: 32px; }
+    .content { padding: 36px; text-align: center; }
 
     .info-box {
       background: #f0fbf4; border: 1px solid #b8e4c6; border-left: 4px solid var(--green);
-      border-radius: 0 12px 12px 0; padding: 14px 18px; margin-bottom: 24px;
-      color: #1f4c29; font-size: .93rem; line-height: 1.6;
+      border-radius: 0 12px 12px 0; padding: 14px 18px; margin-bottom: 28px;
+      color: #1f4c29; font-size: .95rem; line-height: 1.6; text-align: left;
     }
 
-    .video-frame {
-      background: #0f172a; border-radius: 16px; overflow: hidden;
-      box-shadow: 0 12px 32px rgba(15,23,42,.2); margin-bottom: 24px;
+    /* ── Botón para abrir video + flecha animada ───────────────────────────── */
+    .play-cta {
+      position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 10px;
+      margin: 10px auto 20px;
     }
-    video { width: 100%; display: block; }
+    .arrow-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      animation: bounceY 1.3s ease-in-out infinite;
+    }
+    @keyframes bounceY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .arrow-text {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+      color: #1f2937; padding: 10px 18px; border-radius: 999px;
+      font-weight: 800; font-size: .95rem; box-shadow: 0 6px 18px rgba(244,180,0,.35);
+      white-space: nowrap;
+    }
+    .arrow-icon { color: var(--gold-dark); filter: drop-shadow(0 2px 2px rgba(0,0,0,.1)); }
+
+    .btn-play {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: linear-gradient(135deg, var(--red) 0%, #b03020 100%);
+      color: white; padding: 18px 34px; border-radius: 16px; border: none;
+      font-weight: 800; font-size: 1.12rem; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; box-shadow: 0 10px 30px rgba(217,75,61,.35);
+      transition: transform .18s, filter .18s, box-shadow .18s;
+      letter-spacing: .3px;
+    }
+    .btn-play:hover { transform: translateY(-2px) scale(1.02); filter: brightness(1.06); box-shadow: 0 14px 36px rgba(217,75,61,.45); }
+    .btn-play .play-ico {
+      width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      animation: pulseRing 2s ease-out infinite;
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(255,255,255,.6); }
+      70% { box-shadow: 0 0 0 14px rgba(255,255,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
 
     .btn-back {
       display: inline-block; text-decoration: none;
-      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-      color: #1f2937; padding: 13px 24px; border-radius: 12px;
-      font-weight: 700; font-size: .95rem; transition: transform .15s, filter .15s;
+      background: #f5f4ed; color: var(--green-dark);
+      padding: 12px 22px; border-radius: 12px; border: 1.5px solid var(--border);
+      font-weight: 700; font-size: .92rem; margin-top: 14px;
+      transition: background .15s;
     }
-    .btn-back:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    .btn-back:hover { background: #ebeadf; }
+
+    /* ── Modal / ventana emergente del video ──────────────────────────────── */
+    .video-modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(10, 20, 10, .82);
+      backdrop-filter: blur(6px);
+      z-index: 500; align-items: center; justify-content: center;
+      padding: 20px; animation: fadeBg .3s ease;
+    }
+    @keyframes fadeBg { from { opacity: 0; } to { opacity: 1; } }
+    .video-modal-bg.open { display: flex; }
+
+    .video-modal {
+      position: relative; width: min(920px, 100%);
+      background: #0f172a; border-radius: 18px;
+      box-shadow: 0 40px 100px rgba(0,0,0,.5);
+      overflow: hidden; animation: popIn .35s cubic-bezier(.2,.9,.3,1.2);
+      border: 3px solid var(--gold);
+    }
+    @keyframes popIn {
+      from { transform: scale(.8) translateY(20px); opacity: 0; }
+      to   { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    .video-modal-header {
+      background: linear-gradient(135deg, #1f4c29 0%, #2f6b3b 100%);
+      color: white; padding: 14px 56px 14px 22px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .video-modal-header h3 { font-family: 'Fraunces', serif; font-size: 1.15rem; font-weight: 700; }
+    .video-modal-header .pill {
+      background: var(--gold); color: #1f2937; font-size: .7rem; font-weight: 800;
+      padding: 3px 10px; border-radius: 999px; letter-spacing: .3px;
+    }
+
+    .video-modal video { width: 100%; display: block; background: black; }
+
+    .video-modal-close {
+      position: absolute; top: 12px; right: 14px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+      color: white; font-size: 1.1rem; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+      z-index: 2;
+    }
+    .video-modal-close:hover { background: rgba(255,255,255,.28); }
+
+    .video-hint {
+      background: #fffbf0; color: #5a4a1a; text-align: center;
+      padding: 10px 16px; font-size: .88rem; font-weight: 600;
+      border-top: 1px solid #f0dfa0; display: none;
+    }
+    .video-hint.show { display: block; }
 
     .footer { text-align: center; padding: 20px; color: var(--muted); font-size: .85rem; }
+
+    @media (max-width: 640px) {
+      .content { padding: 24px 18px; }
+      .btn-play { padding: 14px 22px; font-size: 1rem; }
+      .arrow-text { font-size: .82rem; padding: 8px 14px; }
+    }
   </style>
 </head>
 <body>
@@ -99,46 +195,95 @@
       <div class="content">
         <div class="info-box">
           <strong>✓ Inscripción confirmada.</strong><br>
-          A continuación podrás visualizar el contenido informativo preparado para los participantes de esta mesa pública.
+          Para completar tu participación, te invitamos a ver el video informativo preparado para esta mesa pública. ¡No te lo pierdas!
         </div>
 
-        <div id="autoplay-notice" style="display:none;background:#fffbf0;border:1px solid #f0dfa0;border-left:4px solid #f4b400;border-radius:0 12px 12px 0;padding:12px 16px;margin-bottom:16px;color:#5a4a1a;font-size:.9rem;">
-          <strong>Toca en cualquier parte de la pantalla</strong> para reproducir el video con sonido.
-        </div>
-        <div class="video-frame">
-          <video controls autoplay playsinline id="mainVideo">
-            <source src="video.mp4" type="video/mp4" />
-            Tu navegador no soporta la reproducción de video.
-          </video>
+        <div class="play-cta">
+          <div class="arrow-wrap">
+            <span class="arrow-text">👉 Reproduce el video — dale clic, ¡no te lo pierdas!</span>
+            <svg class="arrow-icon" width="34" height="42" viewBox="0 0 34 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17 2 L17 34 M17 34 L6 22 M17 34 L28 22" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <button class="btn-play" id="btnPlayVideo" type="button">
+            <span class="play-ico">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+            <span>Reproducir video informativo</span>
+          </button>
         </div>
 
+        <br>
         <a class="btn-back" href="index.html">← Volver al formulario</a>
       </div>
     </section>
   </main>
 
+  <!-- MODAL / VENTANA EMERGENTE DEL VIDEO -->
+  <div class="video-modal-bg" id="videoModalBg" role="dialog" aria-modal="true" aria-label="Video informativo">
+    <div class="video-modal">
+      <div class="video-modal-header">
+        <span class="pill">▶ AHORA</span>
+        <h3>Video informativo — Primera Mesa Pública PAE 2026</h3>
+      </div>
+      <button class="video-modal-close" id="btnCloseVideo" aria-label="Cerrar video">✕</button>
+      <video id="mainVideo" controls playsinline preload="metadata">
+        <source src="video.mp4" type="video/mp4" />
+        Tu navegador no soporta la reproducción de video.
+      </video>
+      <div class="video-hint" id="videoHint">
+        🔊 Toca el video para reproducirlo con sonido.
+      </div>
+    </div>
+  </div>
+
   <div class="footer">© 2026 Programa de Alimentación Escolar — Sitio de inscripción.</div>
 
   <script>
-    window.addEventListener('DOMContentLoaded', function() {
-      const video = document.getElementById('mainVideo');
+    const modalBg  = document.getElementById('videoModalBg');
+    const btnPlay  = document.getElementById('btnPlayVideo');
+    const btnClose = document.getElementById('btnCloseVideo');
+    const video    = document.getElementById('mainVideo');
+    const hint     = document.getElementById('videoHint');
+
+    function openVideo() {
+      modalBg.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      // Intentar reproducir con sonido
       video.muted = false;
       video.volume = 1.0;
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(function() {
-          // El navegador bloqueó autoplay con sonido — se reproduce al primer clic del usuario
-          document.body.addEventListener('click', function unlockAudio() {
-            video.muted = false;
-            video.volume = 1.0;
-            video.play();
-            document.body.removeEventListener('click', unlockAudio);
-          }, { once: true });
-          // Mostrar aviso
-          const notice = document.getElementById('autoplay-notice');
-          if (notice) notice.style.display = 'block';
+      const p = video.play();
+      if (p !== undefined) {
+        p.catch(() => {
+          // Si el navegador bloquea el sonido, probar en silencio + hint
+          video.muted = true;
+          video.play().catch(()=>{});
+          hint.classList.add('show');
+          document.body.addEventListener('click', unlockAudio, { once: true });
         });
       }
+    }
+    function unlockAudio() {
+      video.muted = false;
+      video.volume = 1.0;
+      video.play().catch(()=>{});
+      hint.classList.remove('show');
+    }
+    function closeVideo() {
+      modalBg.classList.remove('open');
+      document.body.style.overflow = '';
+      video.pause();
+    }
+
+    btnPlay.addEventListener('click', openVideo);
+    btnClose.addEventListener('click', closeVideo);
+    modalBg.addEventListener('click', (e) => { if (e.target === modalBg) closeVideo(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalBg.classList.contains('open')) closeVideo(); });
+
+    // Abrir automáticamente al cargar la página (como ventana emergente)
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(openVideo, 500);
     });
   </script>
 </body>

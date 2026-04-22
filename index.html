@@ -55,7 +55,10 @@
       color: #5a4a1a; font-size: .92rem; line-height: 1.6;
     }
     form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field { display: flex; flex-direction: column; gap: 7px; position: relative; }
+    .field.has-error input { border-color: var(--red); background: #fef2f2; }
+    .field-error { color: var(--red); font-size: .82rem; font-weight: 600; display: none; margin-top: 2px; }
+    .field.has-error .field-error { display: block; }
     label { font-size: .8rem; font-weight: 700; color: var(--green-dark); letter-spacing: .2px; text-transform: uppercase; }
     input, select {
       width: 100%; padding: 13px 15px; border: 1.5px solid var(--border); border-radius: 12px;
@@ -79,8 +82,10 @@
       display: none; position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
       background: #1f4c29; color: white; padding: 14px 24px; border-radius: 14px;
       font-size: .94rem; font-weight: 600; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      max-width: 92vw; text-align: center;
     }
     .toast.show { display: block; animation: fadeUp .3s ease; }
+    .toast.error { background: var(--red); }
     @keyframes fadeUp { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
     .footer { text-align: center; padding: 20px; color: var(--muted); font-size: .85rem; }
     @media (max-width: 640px) { form { grid-template-columns: 1fr; } .section { padding: 22px; } }
@@ -115,36 +120,43 @@
           <strong>Participa y haz parte de este encuentro.</strong><br>
           La mesa pública del PAE promueve la participación de la comunidad educativa y fortalece el compromiso con la alimentación escolar de niños, niñas y adolescentes.
         </div>
-        <form id="registroForm">
-          <div class="field">
+        <form id="registroForm" novalidate>
+          <div class="field" id="f-nombres">
             <label for="nombres">Nombres</label>
             <input type="text" id="nombres" placeholder="Ingrese sus nombres" required />
+            <span class="field-error"></span>
           </div>
-          <div class="field">
+          <div class="field" id="f-apellidos">
             <label for="apellidos">Apellidos</label>
             <input type="text" id="apellidos" placeholder="Ingrese sus apellidos" required />
+            <span class="field-error"></span>
           </div>
-          <div class="field">
+          <div class="field" id="f-cedula">
             <label for="cedula">Número de cédula</label>
             <input type="text" id="cedula" inputmode="numeric" placeholder="Ingrese su número de cédula" required />
+            <span class="field-error"></span>
           </div>
-          <div class="field">
+          <div class="field" id="f-correo">
             <label for="correo">Correo electrónico</label>
             <input type="email" id="correo" placeholder="ejemplo@correo.com" required />
+            <span class="field-error"></span>
           </div>
-          <div class="field">
+          <div class="field" id="f-contacto">
             <label for="contacto">Número de contacto</label>
             <input type="text" id="contacto" inputmode="tel" placeholder="Ingrese su número de contacto" required />
+            <span class="field-error"></span>
           </div>
-          <div class="field">
+          <div class="field" id="f-rol">
             <label for="rol">Rol / Cargo</label>
             <input type="text" id="rol" placeholder="Ej: Rector, Docente, Padre de familia..." required />
+            <span class="field-error"></span>
           </div>
-          <div class="field">
+          <div class="field" id="f-municipio">
             <label for="municipio">Municipio</label>
             <select id="municipio" required>
               <option value="" disabled selected>Seleccione su municipio</option>
             </select>
+            <span class="field-error"></span>
           </div>
 
           <div class="actions">
@@ -172,53 +184,160 @@
     const btn  = document.getElementById('btnEnviar');
     const toast = document.getElementById('toast');
 
-    function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000); }
+    function showToast(msg, isError=false) {
+      toast.textContent = msg;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    // Marca un campo con error y posiciona el scroll
+    function setFieldError(id, msg) {
+      const wrap = document.getElementById('f-' + id);
+      if (!wrap) return;
+      wrap.classList.add('has-error');
+      wrap.querySelector('.field-error').textContent = msg || '';
+      const inp = document.getElementById(id);
+      inp.focus();
+      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function clearErrors() {
+      document.querySelectorAll('.field.has-error').forEach(f => {
+        f.classList.remove('has-error');
+        const e = f.querySelector('.field-error'); if (e) e.textContent = '';
+      });
+    }
+
+    // Parser CSV robusto — maneja comas y comillas dentro de los campos
+    function parseCSV(text) {
+      const rows = [];
+      let cur = [''], row = 0, col = 0, inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+          if (c === '"' && text[i+1] === '"') { cur[col] += '"'; i++; }
+          else if (c === '"') { inQuotes = false; }
+          else { cur[col] += c; }
+        } else {
+          if (c === '"') { inQuotes = true; }
+          else if (c === ',') { col++; cur[col] = ''; }
+          else if (c === '\r') { /* ignorar */ }
+          else if (c === '\n') { rows.push(cur); cur = ['']; col = 0; row++; }
+          else { cur[col] += c; }
+        }
+      }
+      if (cur.length > 1 || cur[0] !== '') rows.push(cur);
+      return rows;
+    }
+
+    function norm(s) { return (s == null ? '' : String(s)).trim(); }
+    function normEmail(s) { return norm(s).toLowerCase(); }
+    function normDigits(s) { return norm(s).replace(/\D+/g, ''); }
 
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
+      clearErrors();
       btn.disabled = true; btn.textContent = 'Verificando...';
 
-      const cedula   = document.getElementById('cedula').value.trim();
-      const correo   = document.getElementById('correo').value.trim();
-      const contacto = document.getElementById('contacto').value.trim();
+      const nombres   = norm(document.getElementById('nombres').value);
+      const apellidos = norm(document.getElementById('apellidos').value);
+      const cedula    = normDigits(document.getElementById('cedula').value);
+      const correo    = normEmail(document.getElementById('correo').value);
+      const contacto  = normDigits(document.getElementById('contacto').value);
+      const rol       = norm(document.getElementById('rol').value);
+      const municipio = norm(document.getElementById('municipio').value);
 
-      // Verificar duplicados
+      // Validaciones básicas
+      if (!nombres)   { setFieldError('nombres', 'Ingrese sus nombres.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+      if (!apellidos) { setFieldError('apellidos', 'Ingrese sus apellidos.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+      if (!cedula || cedula.length < 5) { setFieldError('cedula', 'Ingrese un número de cédula válido.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+      if (!correo || !/^\S+@\S+\.\S+$/.test(correo)) { setFieldError('correo', 'Ingrese un correo electrónico válido.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+      if (!contacto || contacto.length < 7) { setFieldError('contacto', 'Ingrese un número de contacto válido.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+      if (!rol) { setFieldError('rol', 'Indique su rol o cargo.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+      if (!municipio) { setFieldError('municipio', 'Seleccione un municipio.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+
+      // ── Verificar duplicados contra Google Sheets ────────────────────────────
       try {
-        const res = await fetch(CSV_URL);
-        const text = await res.text();
-        const lines = text.trim().split('\n');
-        if (lines.length > 1) {
-          const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
-          const iCed = headers.findIndex(h => h === 'Cédula');
-          const iCor = headers.findIndex(h => h === 'Correo');
-          const iCon = headers.findIndex(h => h === 'Contacto');
-          for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',').map(c => c.replace(/"/g,'').trim());
-            if (iCed >= 0 && cols[iCed] === cedula)   { showToast('⚠️ Ya existe un registro con esa cédula.');            btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
-            if (iCor >= 0 && cols[iCor] === correo)   { showToast('⚠️ Ya existe un registro con ese correo.');             btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
-            if (iCon >= 0 && cols[iCon] === contacto) { showToast('⚠️ Ya existe un registro con ese número de contacto.'); btn.disabled=false; btn.textContent='Enviar inscripción'; return; }
+        const res = await fetch(CSV_URL + '&_=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const text = await res.text();
+          const rows = parseCSV(text);
+          if (rows.length > 1) {
+            const headers = rows[0].map(h => norm(h).toLowerCase());
+            const idxOf = (...names) => {
+              for (const n of names) {
+                const i = headers.findIndex(h => h === n.toLowerCase());
+                if (i >= 0) return i;
+              }
+              return -1;
+            };
+            const iCed = idxOf('Cédula','Cedula','cedula');
+            const iCor = idxOf('Correo','correo','Email','email');
+            const iCon = idxOf('Contacto','contacto','Teléfono','Telefono');
+
+            for (let i = 1; i < rows.length; i++) {
+              const cols = rows[i];
+              if (!cols || cols.every(c => norm(c) === '')) continue;
+              if (iCed >= 0 && normDigits(cols[iCed]) === cedula && cedula !== '') {
+                setFieldError('cedula', '⚠️ Este número de cédula ya está registrado. Verifique los datos o use otro.');
+                showToast('Esta cédula ya está registrada. Por favor cámbiela.', true);
+                btn.disabled=false; btn.textContent='Enviar inscripción';
+                return;
+              }
+              if (iCor >= 0 && normEmail(cols[iCor]) === correo && correo !== '') {
+                setFieldError('correo', '⚠️ Este correo electrónico ya está registrado. Use otro distinto.');
+                showToast('Este correo ya está registrado. Por favor cámbielo.', true);
+                btn.disabled=false; btn.textContent='Enviar inscripción';
+                return;
+              }
+              if (iCon >= 0 && normDigits(cols[iCon]) === contacto && contacto !== '') {
+                setFieldError('contacto', '⚠️ Este número de contacto ya está registrado.');
+                showToast('Este número de contacto ya está registrado.', true);
+                btn.disabled=false; btn.textContent='Enviar inscripción';
+                return;
+              }
+            }
           }
         }
-      } catch(err) { /* Si no se puede verificar, permite continuar */ }
+      } catch(err) {
+        // Si no se puede verificar duplicados (offline, CORS, etc.), se continúa con el envío
+        console.warn('Verificación de duplicados falló, continuando:', err);
+      }
 
+      // ── Enviar ──────────────────────────────────────────────────────────────
       btn.textContent = 'Enviando...';
       const data = {
-        nombres:   document.getElementById('nombres').value.trim(),
-        apellidos: document.getElementById('apellidos').value.trim(),
-        cedula, correo, contacto,
-        rol:       document.getElementById('rol').value.trim(),
-        municipio: document.getElementById('municipio').value,
+        nombres, apellidos, cedula, correo, contacto, rol, municipio,
         fechaRegistro: new Date().toLocaleString('es-CO')
       };
       try {
         await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
         showToast('✓ Inscripción enviada correctamente');
-        setTimeout(() => { window.location.href = 'gracias.html'; }, 1500);
+        setTimeout(() => { window.location.href = 'gracias.html'; }, 1200);
       } catch (err) {
-        showToast('Error al enviar. Intenta de nuevo.');
+        showToast('Error al enviar. Intenta de nuevo.', true);
         btn.disabled = false; btn.textContent = 'Enviar inscripción';
       }
-    });;
+    });
+
+    // Limpia error al volver a escribir
+    ['nombres','apellidos','cedula','correo','contacto','rol','municipio'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        const wrap = document.getElementById('f-' + id);
+        if (wrap && wrap.classList.contains('has-error')) {
+          wrap.classList.remove('has-error');
+          const e = wrap.querySelector('.field-error'); if (e) e.textContent = '';
+        }
+      });
+      el.addEventListener('change', () => {
+        const wrap = document.getElementById('f-' + id);
+        if (wrap && wrap.classList.contains('has-error')) {
+          wrap.classList.remove('has-error');
+          const e = wrap.querySelector('.field-error'); if (e) e.textContent = '';
+        }
+      });
+    });
   </script>
 </body>
 </html>
