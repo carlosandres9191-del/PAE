@@ -188,6 +188,10 @@
     </div>
     <button class="btn-primary" style="width:100%;margin-top:4px" onclick="doLogin()">Ingresar</button>
     <p class="auth-error" id="loginError">Usuario o contraseña incorrectos.</p>
+    <p style="margin-top:18px;text-align:center;font-size:.8rem;color:var(--muted)">
+      ¿Olvidaste o eliminaste un usuario?
+      <button type="button" onclick="resetDefaultUsers()" style="background:none;border:none;color:var(--green);text-decoration:underline;cursor:pointer;font-family:inherit;font-size:.8rem;padding:0;">Restaurar usuarios por defecto</button>
+    </p>
   </div>
 </div>
 
@@ -365,12 +369,19 @@ const DEFAULT_USERS = [
 ];
 
 function getUsers() {
+  let arr = null;
   try {
     const raw = localStorage.getItem(USERS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
-  return [...DEFAULT_USERS];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) arr = parsed;
+    }
+  } catch(e) { arr = null; }
+  if (!arr || !arr.length) {
+    arr = DEFAULT_USERS.map(u => ({...u}));
+    try { localStorage.setItem(USERS_KEY, JSON.stringify(arr)); } catch(e) {}
+  }
+  return arr;
 }
 function saveUsers(users) {
   try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch(e) {}
@@ -381,21 +392,100 @@ function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
 
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 function doLogin() {
-  const uVal = document.getElementById('loginUser').value.trim();
-  const pVal = document.getElementById('loginPass').value;
-  const users = getUsers();
-  const found = users.find(u => u.username === uVal && u.password === pVal);
-  if (!found) { document.getElementById('loginError').style.display = 'block'; return; }
-  setSession(found);
-  document.getElementById('authOverlay').style.display = 'none';
-  document.getElementById('sessionName').textContent = found.nombre;
-  if (found.rol === 'admin') {
-    document.getElementById('tabUsuarios').style.display = 'block';
+  try {
+    const uVal = (document.getElementById('loginUser').value || '').trim().toLowerCase();
+    const pVal = document.getElementById('loginPass').value || '';
+    const errEl = document.getElementById('loginError');
+    errEl.style.color = '';
+
+    if (!uVal || !pVal) {
+      errEl.textContent = 'Ingresa usuario y contraseña.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    let users = getUsers();
+
+    // 1) Buscar en usuarios actuales (case-insensitive en username)
+    let found = users.find(u => (u.username||'').toLowerCase() === uVal && u.password === pVal);
+
+    // 2) Si no se encuentra pero coincide con un usuario por defecto, restaurarlo automáticamente
+    if (!found) {
+      const defMatch = DEFAULT_USERS.find(d => d.username.toLowerCase() === uVal && d.password === pVal);
+      if (defMatch) {
+        const existing = users.find(u => u.id === defMatch.id || (u.username||'').toLowerCase() === defMatch.username.toLowerCase());
+        if (existing) {
+          // Existe pero con contraseña distinta: la restauramos
+          existing.password = defMatch.password;
+          existing.nombre = existing.nombre || defMatch.nombre;
+          existing.rol = existing.rol || defMatch.rol;
+          found = existing;
+        } else {
+          // No existe: lo agregamos
+          const newUser = { ...defMatch };
+          users.push(newUser);
+          found = newUser;
+        }
+        saveUsers(users);
+      }
+    }
+
+    if (!found) {
+      const userExists = users.find(u => (u.username||'').toLowerCase() === uVal);
+      const defaultExists = DEFAULT_USERS.find(d => d.username.toLowerCase() === uVal);
+      if (!userExists && !defaultExists) {
+        errEl.textContent = 'El usuario "' + uVal + '" no existe. Usuarios disponibles: ' + users.map(u => u.username).join(', ');
+      } else {
+        errEl.textContent = 'La contraseña es incorrecta. Verifica mayúsculas y símbolos (ejemplo: Coordi.2026*).';
+      }
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Login exitoso
+    errEl.style.display = 'none';
+    setSession(found);
+    const overlay = document.getElementById('authOverlay');
+    overlay.style.display = 'none';
+    document.getElementById('sessionName').textContent = found.nombre;
+    if (found.rol === 'admin') {
+      document.getElementById('tabUsuarios').style.display = 'block';
+    }
+    loadData();
+  } catch (err) {
+    console.error('Error en login:', err);
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = 'Error técnico: ' + (err.message || err);
+    errEl.style.display = 'block';
   }
-  loadData();
 }
 
 function logout() { clearSession(); location.reload(); }
+
+// Restaura los usuarios por defecto (combina con existentes sin duplicar)
+function resetDefaultUsers() {
+  let users = getUsers();
+  let added = [];
+  DEFAULT_USERS.forEach(def => {
+    const exists = users.find(u => u.id === def.id || (u.username||'').toLowerCase() === def.username.toLowerCase());
+    if (!exists) {
+      users.push({ ...def });
+      added.push(def.username);
+    } else {
+      // Si existe pero la contraseña fue cambiada, la restauramos
+      exists.password = def.password;
+      exists.nombre = exists.nombre || def.nombre;
+      exists.rol = exists.rol || def.rol;
+      added.push(def.username + ' (contraseña restaurada)');
+    }
+  });
+  saveUsers(users);
+  const errEl = document.getElementById('loginError');
+  errEl.style.color = 'var(--green)';
+  errEl.textContent = '✓ Usuarios restaurados: ' + added.join(', ') + '. Ya puedes ingresar.';
+  errEl.style.display = 'block';
+  setTimeout(() => { errEl.style.color = ''; }, 6000);
+}
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
